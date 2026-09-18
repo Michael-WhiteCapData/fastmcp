@@ -869,6 +869,19 @@ class TestMalformedURITemplates:
         assert result is not None
         assert result == {"id": "42", "format": "", "verbose": "true"}
 
+    def test_uri_fragment_is_not_part_of_query_parameter(self):
+        result = match_uri_template(
+            "test://items?filter=active#section",
+            "test://items{?filter}",
+        )
+
+        assert result == {"filter": "active"}
+
+    def test_uri_fragment_is_not_part_of_path_parameter(self):
+        result = match_uri_template("test://items/42#section", "test://items/{id}")
+
+        assert result == {"id": "42"}
+
     def test_from_function_rejects_hyphen_underscore_collision(self):
         """Two raw param names that normalize to the same key are rejected."""
 

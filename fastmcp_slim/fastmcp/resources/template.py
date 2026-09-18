@@ -87,8 +87,10 @@ def match_uri_template(uri: str, uri_template: str) -> dict[str, str] | None:
     - Path params: `{var}`, `{var*}`
     - Query params: `{?var1,var2}`
     """
-    # Split URI into path and query parts
-    uri_path, _, query_string = uri.partition("?")
+    # Fragments identify a secondary resource and are not part of URI-template
+    # matching or query parameter values.
+    uri_without_fragment = uri.partition("#")[0]
+    uri_path, _, query_string = uri_without_fragment.partition("?")
 
     # Match path parameters
     regex = build_regex(uri_template)
