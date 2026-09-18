@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, Literal
 from unittest.mock import MagicMock
 
 import mcp_types
@@ -388,6 +388,27 @@ class TestBM25Search:
         result = await mcp.call_tool("search_tools", {"query": "weather forecast"})
         tools = _parse_tool_result(result)
         assert any(t["name"] == "get_weather" for t in tools)
+
+    async def test_search_returns_current_schema_for_replaced_tool(self):
+        mcp = FastMCP("test")
+        mcp.add_transform(BM25SearchTransform())
+
+        @mcp.tool(name="job_status", version="1")
+        def old(state: Literal["queued"]) -> str:
+            """Check job status."""
+            return state
+
+        await mcp.call_tool("search_tools", {"query": "status"})
+
+        @mcp.tool(name="job_status", version="2")
+        def new(state: Literal["running"]) -> str:
+            """Check job status."""
+            return state
+
+        result = await mcp.call_tool("search_tools", {"query": "status"})
+        tools = _parse_tool_result(result)
+
+        assert tools[0]["inputSchema"]["properties"]["state"]["const"] == "running"
 
     async def test_search_empty_query(self):
         mcp = _make_server_with_tools()

@@ -80,8 +80,8 @@ class _BM25Index:
 
 
 def _catalog_hash(tools: Sequence[Tool]) -> str:
-    """SHA256 hash of sorted tool searchable text for staleness detection."""
-    key = "|".join(sorted(_extract_searchable_text(t) for t in tools))
+    """SHA256 hash of tool searchable text for staleness detection."""
+    key = "|".join(_extract_searchable_text(t) for t in tools)
     return hashlib.sha256(key.encode()).hexdigest()
 
 
@@ -136,11 +136,15 @@ class BM25SearchTransform(BaseSearchTransform):
             documents = [_extract_searchable_text(t) for t in tools]
             new_index = _BM25Index(self._index.k1, self._index.b)
             new_index.build(documents)
-            self._index, self._indexed_tools, self._last_hash = (
+            self._index, self._last_hash = (
                 new_index,
-                tools,
                 current_hash,
             )
+
+        # A replacement tool may have identical searchable text but a different
+        # schema or other metadata. Keep search results tied to the current
+        # catalog even when the BM25 index itself remains valid.
+        self._indexed_tools = tools
 
         indices = self._index.query(query, self._max_results)
         return [self._indexed_tools[i] for i in indices]
